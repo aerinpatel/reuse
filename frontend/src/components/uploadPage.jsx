@@ -84,24 +84,20 @@ const UploadPage = ({ onLogout }) => {
       const uploadResponse = await fetch(UPLOAD_API_URL, {
         method: 'POST',
         body: formData,
-        // The browser automatically sets the correct 'Content-Type' header for FormData
-        // We can add a progress event listener but the fetch API doesn't support it directly.
-        // A common workaround is to use XMLHttpRequest for progress tracking.
-        // For simplicity here, we'll simulate progress.
       });
 
       if (!uploadResponse.ok) {
         throw new Error('Failed to upload APK.');
       }
 
-      const { jobid } = await uploadResponse.json();
+      const { job_id } = await uploadResponse.json();
       setUploadStatus('checking');
       setUploadProgress(100); // Upload step is complete, progress is 100%
 
       // Step 2: Poll for the result
       intervalRef.current = setInterval(async () => {
         try {
-          const resultResponse = await fetch(`${RESULT_API_URL}${jobid}`);
+          const resultResponse = await fetch(`${RESULT_API_URL}${job_id}`);
           if (!resultResponse.ok) {
             throw new Error('Failed to fetch analysis result.');
           }
@@ -110,7 +106,12 @@ const UploadPage = ({ onLogout }) => {
           if (data.status === 'complete') {
             clearInterval(intervalRef.current);
             setUploadStatus('complete');
-            setAnalysisResult(data.result.app); // Extract the desired 'app' data
+            const appData = data.result.app;
+            setAnalysisResult(appData); // Store the app data
+            
+            // Display alert with app data
+            const alertMessage = `APK Uploaded Successfully! ✅\n\nApp Details:\nName: ${appData.name}\nPackage: ${appData.package}\nVersion: ${appData.version_name} (${appData.version_code})\nSHA256: ${appData.apk_sha256}`;
+            alert(alertMessage);
           }
         } catch (error) {
           console.error("Error during polling:", error);
